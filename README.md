@@ -4,6 +4,8 @@
 
 ![Next.js 15](https://img.shields.io/badge/Next.js-15-black) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8)
 
+🔗 **公開サイト: https://ui-dictionary-japan.vercel.app**
+
 ## クイックスタート
 
 ```bash
