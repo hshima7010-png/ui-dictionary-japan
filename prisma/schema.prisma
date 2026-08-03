@@ -1,0 +1,269 @@
+// UI Dictionary Japan — Prisma Schema
+// Supabase (PostgreSQL) 向け。
+// `npx prisma db push` でスキーマを反映し、
+// services/*.ts のモック実装をPrismaクライアント実装に差し替えてください。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Supabase: Transaction pooler (port 6543)
+  directUrl = env("DIRECT_URL")   // Supabase: Direct connection (port 5432, migration用)
+}
+
+/// ユーザー（NextAuth互換）
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  email         String       @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role         @default(USER)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  favorites   Favorite[]
+  submissions Submission[]
+  viewLogs    ViewLog[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  EDITOR
+  ADMIN
+}
+
+/// NextAuth: OAuthアカウント
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+/// NextAuth: セッション
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+/// カテゴリー
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  nameJa      String
+  description String
+  icon        String
+  group       String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  items UIItem[]
+
+  @@map("categories")
+}
+
+/// UIアイテム（辞典の1エントリ）
+model UIItem {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  name        String
+  nameJa      String
+  description String
+  status      ItemStatus   @default(PUBLISHED)
+  difficulty  Int          @default(1)
+  /// 本文ブロック: whatIs / features / merits / demerits /
+  /// bestPractices / useCases / accessibility / figma をJSONで保持
+  content     Json
+  /// 実装コード: { html, tailwind, react, shadcn, ... }
+  code        Json
+  /// 自然言語エイリアス（AI検索用）
+  aliases     String[]
+  gradient    String?
+  categoryId  String
+  views       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  category    Category         @relation(fields: [categoryId], references: [id])
+  tags        TagsOnItems[]
+  collections ItemsOnCollections[]
+  favorites   Favorite[]
+  viewLogs    ViewLog[]
+  images      ItemImage[]
+  relatedFrom RelatedItem[]    @relation("relatedFrom")
+  relatedTo   RelatedItem[]    @relation("relatedTo")
+
+  @@index([categoryId])
+  @@index([status, views(sort: Desc)])
+  @@map("ui_items")
+}
+
+enum ItemStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// 関連UI（自己多対多）
+model RelatedItem {
+  fromId String
+  toId   String
+
+  from UIItem @relation("relatedFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   UIItem @relation("relatedTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@id([fromId, toId])
+  @@map("related_items")
+}
+
+/// タグ
+model Tag {
+  id    String        @id @default(cuid())
+  name  String        @unique
+  items TagsOnItems[]
+
+  @@map("tags")
+}
+
+model TagsOnItems {
+  itemId String
+  tagId  String
+
+  item UIItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tag  Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, tagId])
+  @@map("tags_on_items")
+}
+
+/// コレクション（テーマ別まとめ）
+model Collection {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  description     String
+  longDescription String
+  gradient        String
+  icon            String
+  sortOrder       Int      @default(0)
+
+  items ItemsOnCollections[]
+
+  @@map("collections")
+}
+
+model ItemsOnCollections {
+  itemId       String
+  collectionId String
+  sortOrder    Int    @default(0)
+
+  item       UIItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, collectionId])
+  @@map("items_on_collections")
+}
+
+/// ギャラリー画像（Cloudinary）
+model ItemImage {
+  id        String   @id @default(cuid())
+  itemId    String
+  /// CloudinaryのpublicId
+  publicId  String
+  alt       String
+  width     Int
+  height    Int
+  credit    String?
+  createdAt DateTime @default(now())
+
+  item UIItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@map("item_images")
+}
+
+/// お気に入り
+model Favorite {
+  userId    String
+  itemId    String
+  createdAt DateTime @default(now())
+
+  user User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item UIItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemId])
+  @@index([itemId])
+  @@map("favorites")
+}
+
+/// 閲覧ログ（ランキング集計用）
+model ViewLog {
+  id        String   @id @default(cuid())
+  itemId    String
+  userId    String?
+  /// 匿名ユーザー識別用の日次ハッシュ（IP+UAのhash）— 個人情報は保存しない
+  anonHash  String?
+  createdAt DateTime @default(now())
+
+  item UIItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([itemId, createdAt])
+  @@map("view_logs")
+}
+
+/// ユーザー投稿
+model Submission {
+  id          String           @id @default(cuid())
+  title       String
+  url         String
+  description String
+  category    String
+  tags        String[]
+  /// Cloudinary publicId
+  screenshot  String?
+  email       String
+  userId      String?
+  status      SubmissionStatus @default(PENDING)
+  reviewNote  String?
+  createdAt   DateTime         @default(now())
+  reviewedAt  DateTime?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("submissions")
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

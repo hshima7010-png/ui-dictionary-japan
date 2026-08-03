@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------- */
+/* Design Tokens (Light / Dark)        */
+/* ---------------------------------- */
+:root {
+  --font-sans: "Inter", "Noto Sans JP";
+  --font-mono: "SF Mono", ui-monospace;
+  --background: 255 255 255; /* #FFFFFF */
+  --foreground: 17 24 39; /* #111827 */
+  --muted: 246 247 249;
+  --muted-foreground: 107 114 128; /* #6B7280 */
+  --card: 255 255 255;
+  --card-foreground: 17 24 39;
+  --border: 229 231 235; /* #E5E7EB */
+}
+
+.dark {
+  --background: 15 23 42; /* #0F172A */
+  --foreground: 241 245 249;
+  --muted: 30 41 59;
+  --muted-foreground: 148 163 184;
+  --card: 20 30 51;
+  --card-foreground: 241 245 249;
+  --border: 41 53 76;
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
+  font-feature-settings: "palt";
+}
+
+::selection {
+  background: rgb(37 99 235 / 0.18);
+}
+
+/* Focus ring — accessibility first */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------- */
+/* Utility layers                      */
+/* ---------------------------------- */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .glass {
+    background: rgb(var(--background) / 0.72);
+    backdrop-filter: saturate(1.6) blur(16px);
+    -webkit-backdrop-filter: saturate(1.6) blur(16px);
+  }
+  .card-hover {
+    transition:
+      transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.3s;
+  }
+  .card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 2px 4px rgb(15 23 42 / 0.06),
+      0 16px 40px rgb(15 23 42 / 0.12);
+  }
+  .gradient-text {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* UIプレビューの背景ドット */
+  .preview-dots {
+    background-image: radial-gradient(
+      rgb(var(--muted-foreground) / 0.22) 1px,
+      transparent 1px
+    );
+    background-size: 12px 12px;
+  }
+  .masonry {
+    column-gap: 1.5rem;
+    column-count: 1;
+  }
+  @media (min-width: 640px) {
+    .masonry {
+      column-count: 2;
+    }
+  }
+  @media (min-width: 1024px) {
+    .masonry {
+      column-count: 3;
+    }
+  }
+  @media (min-width: 1536px) {
+    .masonry {
+      column-count: 4;
+    }
+  }
+  .masonry > * {
+    break-inside: avoid;
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* ---------------------------------- */
+/* Code block                          */
+/* ---------------------------------- */
+pre {
+  tab-size: 2;
+}
+
+/* Scrollbar (subtle) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--muted-foreground) / 0.25);
+  border-radius: 8px;
+  border: 2px solid rgb(var(--background));
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--muted-foreground) / 0.45);
+}
